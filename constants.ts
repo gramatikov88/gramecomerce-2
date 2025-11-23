@@ -1,4 +1,4 @@
-import { Product, Category } from './types';
+import { Product, Category, Order, PromoCode } from './types';
 import { Smartphone, Laptop, Tv, Shirt, Home, Monitor, Zap, Heart, ShoppingCart, User, Search, Menu, X, MessageCircle, Send, ChevronRight, Star } from 'lucide-react';
 
 export const CATEGORIES: Category[] = [
@@ -184,4 +184,47 @@ export const HERO_SLIDES = [
   { id: 1, image: "https://picsum.photos/1200/400?random=10", title: "Crazy Days", subtitle: "Само 3 дни супер оферти" },
   { id: 2, image: "https://picsum.photos/1200/400?random=11", title: "IT & Mobile", subtitle: "Технологии на бъдещето" },
   { id: 3, image: "https://picsum.photos/1200/400?random=12", title: "Дом и Градина", subtitle: "Уют за твоя дом" },
+];
+
+export const MOCK_ORDERS: Order[] = [
+  {
+    id: 'ORD-001',
+    customerName: 'Иван Петров',
+    email: 'ivan@example.com',
+    date: '2024-05-15',
+    total: 2199.00,
+    status: 'delivered',
+    items: [
+      { ...PRODUCTS[0], quantity: 1 }
+    ]
+  },
+  {
+    id: 'ORD-002',
+    customerName: 'Мария Георгиева',
+    email: 'maria@example.com',
+    date: '2024-05-18',
+    total: 898.00,
+    status: 'shipped',
+    items: [
+      { ...PRODUCTS[2], quantity: 1 },
+      { ...PRODUCTS[6], quantity: 1 }
+    ]
+  },
+  {
+    id: 'ORD-003',
+    customerName: 'Георги Димитров',
+    email: 'georgi@example.com',
+    date: '2024-05-20',
+    total: 549.00,
+    status: 'pending',
+    items: [
+      { ...PRODUCTS[4], quantity: 1 }
+    ]
+  }
+];
+
+export const MOCK_PROMOS: PromoCode[] = [
+  { id: 'p1', code: 'GENIUS', type: 'percent', value: 10, isActive: true },
+  { id: 'p2', code: 'SUMMER', type: 'fixed', value: 20, isActive: true },
+  { id: 'p3', code: 'WELCOME50', type: 'fixed', value: 50, isActive: false },
 ];

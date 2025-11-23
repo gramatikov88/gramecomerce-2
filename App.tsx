@@ -10,11 +10,24 @@ import FilterSidebar from './components/FilterSidebar';
 import CartDrawer from './components/CartDrawer';
 import ComparisonModal from './components/ComparisonModal';
 import ComparisonBar from './components/ComparisonBar';
-import { PRODUCTS, CATEGORIES } from './constants';
-import { Product, CartItem } from './types';
-import { SlidersHorizontal } from 'lucide-react';
+import AdminDashboard from './components/AdminDashboard';
+import { PRODUCTS, CATEGORIES, MOCK_ORDERS, MOCK_PROMOS } from './constants';
+import { Product, CartItem, Category, Order, PromoCode, OrderStatus } from './types';
+import { SlidersHorizontal, Settings, X } from 'lucide-react';
 
 const App: React.FC = () => {
+  // --- ADMIN & DATA STATE ---
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [categories, setCategories] = useState<Category[]>(CATEGORIES);
+  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
+  const [promos, setPromos] = useState<PromoCode[]>(MOCK_PROMOS);
+
+  // --- ADMIN LOGIN STATE ---
+  const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   // Cart State
@@ -37,6 +50,39 @@ const App: React.FC = () => {
   // Sort State
   const [sortOption, setSortOption] = useState<string>('relevance');
 
+  // --- ADMIN AUTH HANDLER ---
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (adminPassword === 'admin123') {
+      setIsAdminMode(true);
+      setIsAdminLoginOpen(false);
+      setAdminPassword('');
+      setLoginError('');
+    } else {
+      setLoginError('Грешна парола');
+    }
+  };
+
+  // --- CRUD HANDLERS FOR ADMIN ---
+  const handleAddProduct = (p: Product) => setProducts(prev => [...prev, p]);
+  const handleUpdateProduct = (p: Product) => setProducts(prev => prev.map(prod => prod.id === p.id ? p : prod));
+  const handleDeleteProduct = (id: number) => setProducts(prev => prev.filter(p => p.id !== id));
+  
+  const handleAddCategory = (c: Category) => setCategories(prev => [...prev, c]);
+  const handleDeleteCategory = (id: string) => setCategories(prev => prev.filter(c => c.id !== id));
+  
+  const handleUpdateOrderStatus = (id: string, status: OrderStatus) => {
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+  };
+
+  const handleAddPromo = (p: PromoCode) => setPromos(prev => [...prev, p]);
+  const handleDeletePromo = (id: string) => setPromos(prev => prev.filter(p => p.id !== id));
+  const handleTogglePromoStatus = (id: string) => {
+    setPromos(prev => prev.map(p => p.id === id ? { ...p, isActive: !p.isActive } : p));
+  };
+
+
+  // --- SHOP LOGIC ---
   const toggleMegaMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
@@ -67,12 +113,12 @@ const App: React.FC = () => {
   };
 
   const handleApplyPromo = (code: string) => {
-    if (code === 'GENIUS') {
-      setPromoDiscount({ code: 'GENIUS', type: 'percent', value: 10 });
-    } else if (code === 'SUMMER') {
-      setPromoDiscount({ code: 'SUMMER', type: 'fixed', value: 20 });
+    // Check against dynamic promos list
+    const foundPromo = promos.find(p => p.code === code && p.isActive);
+    if (foundPromo) {
+      setPromoDiscount({ code: foundPromo.code, type: foundPromo.type, value: foundPromo.value });
     } else {
-      alert('Невалиден промо код');
+      alert('Невалиден или неактивен промо код');
     }
   };
 
@@ -88,7 +134,6 @@ const App: React.FC = () => {
     setSelectedProduct(null);
   };
 
-  // Comparison Handlers
   const handleToggleCompare = (product: Product) => {
     setComparisonList(prev => {
       const exists = prev.find(p => p.id === product.id);
@@ -107,14 +152,14 @@ const App: React.FC = () => {
     setComparisonList(prev => prev.filter(p => p.id !== id));
   };
 
-  // Derive unique categories from products
+  // Derive unique categories from CURRENT products state
   const availableCategories = useMemo(() => {
-    return Array.from(new Set(PRODUCTS.map(p => p.category))).sort();
-  }, []);
+    return Array.from(new Set(products.map(p => p.category))).sort();
+  }, [products]);
 
-  // Filtering Logic
+  // Filtering Logic using dynamic products state
   const filteredProducts = useMemo(() => {
-    return PRODUCTS.filter(product => {
+    return products.filter(product => {
       if (selectedCategories.length > 0 && !selectedCategories.includes(product.category)) {
         return false;
       }
@@ -126,20 +171,20 @@ const App: React.FC = () => {
       }
       return true;
     });
-  }, [selectedCategories, priceRange, minRating]);
+  }, [products, selectedCategories, priceRange, minRating]);
 
   // Sorting Logic
   const sortedProducts = useMemo(() => {
-    const products = [...filteredProducts];
+    const prods = [...filteredProducts];
     switch (sortOption) {
       case 'priceAsc':
-        return products.sort((a, b) => a.price - b.price);
+        return prods.sort((a, b) => a.price - b.price);
       case 'priceDesc':
-        return products.sort((a, b) => b.price - a.price);
+        return prods.sort((a, b) => b.price - a.price);
       case 'ratingDesc':
-        return products.sort((a, b) => b.rating - a.rating);
+        return prods.sort((a, b) => b.rating - a.rating);
       default:
-        return products;
+        return prods;
     }
   }, [filteredProducts, sortOption]);
 
@@ -158,8 +203,43 @@ const App: React.FC = () => {
     setSortOption('relevance');
   };
 
+  // --- RENDER ADMIN MODE ---
+  if (isAdminMode) {
+    return (
+      <AdminDashboard 
+        products={products}
+        categories={categories}
+        orders={orders}
+        promos={promos}
+        onAddProduct={handleAddProduct}
+        onUpdateProduct={handleUpdateProduct}
+        onDeleteProduct={handleDeleteProduct}
+        onAddCategory={handleAddCategory}
+        onDeleteCategory={handleDeleteCategory}
+        onUpdateOrderStatus={handleUpdateOrderStatus}
+        onAddPromo={handleAddPromo}
+        onDeletePromo={handleDeletePromo}
+        onTogglePromoStatus={handleTogglePromoStatus}
+        onExitAdmin={() => setIsAdminMode(false)}
+      />
+    );
+  }
+
+  // --- RENDER SHOP MODE ---
   return (
     <div className="min-h-screen bg-[#f2f2f2] font-sans flex flex-col pb-16 md:pb-0">
+      
+      {/* Admin Toggle Button */}
+      <div className="bg-slate-900 text-white text-xs py-1 px-4 flex justify-between items-center">
+        <span>Demo Mode</span>
+        <button 
+          onClick={() => setIsAdminLoginOpen(true)}
+          className="flex items-center gap-1 hover:text-blue-300 font-bold"
+        >
+          <Settings size={12} /> Вход Админ Панел
+        </button>
+      </div>
+
       <Header 
         toggleMegaMenu={toggleMegaMenu} 
         isMenuOpen={isMenuOpen} 
@@ -182,7 +262,7 @@ const App: React.FC = () => {
 
              {/* Mobile Quick Links */}
              <div className="md:hidden grid grid-cols-4 gap-2 mb-6 text-center mt-4">
-               {CATEGORIES.slice(0, 4).map(cat => (
+               {categories.slice(0, 4).map(cat => (
                  <div key={cat.id} className="bg-white p-2 rounded-lg shadow-sm flex flex-col items-center justify-center text-[10px]">
                     <div className="w-8 h-8 bg-gray-100 rounded-full mb-1"></div>
                     {cat.name.split(' ')[0]}
@@ -334,6 +414,72 @@ const App: React.FC = () => {
         onRemoveProduct={handleRemoveFromCompare}
         onAddToCart={handleAddToCart}
       />
+
+      {/* Admin Login Modal */}
+      {isAdminLoginOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <Settings size={20} className="text-emag-blue" />
+                Вход за администратори
+              </h3>
+              <button 
+                onClick={() => {
+                  setIsAdminLoginOpen(false); 
+                  setLoginError(''); 
+                  setAdminPassword('');
+                }} 
+                className="text-gray-500 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 p-1 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleAdminLogin} className="p-6 space-y-4">
+               <div>
+                 <label className="block text-sm font-bold text-gray-700 mb-2">Парола</label>
+                 <input 
+                   type="password" 
+                   value={adminPassword}
+                   onChange={e => {
+                     setAdminPassword(e.target.value);
+                     setLoginError('');
+                   }}
+                   className="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-emag-blue focus:outline-none focus:border-emag-blue transition-all"
+                   placeholder="Въведете парола"
+                   autoFocus
+                 />
+                 {loginError && (
+                   <div className="text-red-500 text-sm mt-2 flex items-center gap-1 bg-red-50 p-2 rounded border border-red-100">
+                     <span className="font-bold">!</span> {loginError}
+                   </div>
+                 )}
+               </div>
+
+               <div className="flex justify-end gap-3 pt-2">
+                 <button 
+                   type="button" 
+                   onClick={() => {
+                     setIsAdminLoginOpen(false); 
+                     setLoginError(''); 
+                     setAdminPassword('');
+                   }}
+                   className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors"
+                 >
+                   Отказ
+                 </button>
+                 <button 
+                   type="submit" 
+                   className="px-6 py-2 bg-emag-blue text-white rounded-lg font-bold hover:bg-emag-darkBlue shadow-md transition-colors"
+                 >
+                   Вход
+                 </button>
+               </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

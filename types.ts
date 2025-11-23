@@ -32,3 +32,23 @@ export interface ChatMessage {
   timestamp: Date;
   isError?: boolean;
 }
+
+export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+
+export interface Order {
+  id: string;
+  customerName: string;
+  email: string;
+  date: string;
+  total: number;
+  status: OrderStatus;
+  items: CartItem[];
+}
+
+export interface PromoCode {
+  id: string;
+  code: string;
+  type: 'percent' | 'fixed';
+  value: number;
+  isActive: boolean;
+}
