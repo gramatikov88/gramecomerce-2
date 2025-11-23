@@ -1,0 +1,5 @@
+{
+  "name": "eMAG Clone & AI Assistant",
+  "description": "A high-fidelity clone of the eMAG e-commerce platform featuring a modern React UI, Tailwind CSS styling, and a Gemini-powered shopping assistant.",
+  "requestFramePermissions": []
+}
